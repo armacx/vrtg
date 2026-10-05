@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 24467dbc6099449ab9845eb83c2b220b, type: 3}
+  m_Name: Zone_Gold_Config
+  m_EditorClassIdentifier: 
+  zoneNumber: 30
+  wheelTier: 2
+  isSafeZone: 0
+  isSuperZone: 1
+  wheelBaseSprite: {fileID: 21300000, guid: fe1997326d6294f14b0d81013d0eb19a, type: 3}
+  wheelIndicatorSprite: {fileID: 21300000, guid: 18928864c4c7d49f1aefde6431388703, type: 3}
+  slices:
+  - rewardType: 1
+    icon: {fileID: 21300000, guid: 4d3b186dd304c4315bef161dc7ba68c8, type: 3}
+    amount: 250
+    dropWeight: 15
+  - rewardType: 0
+    icon: {fileID: 21300000, guid: fa2f7675d1b214a3a90158c3bd47ffff, type: 3}
+    amount: 2000
+    dropWeight: 15
+  - rewardType: 2
+    icon: {fileID: 21300000, guid: c9d6c7e476f0f416eab6872feacc3e77, type: 3}
+    amount: 5
+    dropWeight: 10
+  - rewardType: 3
+    icon: {fileID: 21300000, guid: 596cf0f2fc9674f939061e55fc0ae359, type: 3}
+    amount: 5
+    dropWeight: 10
+  - rewardType: 1
+    icon: {fileID: 21300000, guid: 4d3b186dd304c4315bef161dc7ba68c8, type: 3}
+    amount: 500
+    dropWeight: 10
+  - rewardType: 0
+    icon: {fileID: 21300000, guid: fa2f7675d1b214a3a90158c3bd47ffff, type: 3}
+    amount: 5000
+    dropWeight: 10
+  - rewardType: 3
+    icon: {fileID: 21300000, guid: 8c79080ab55ff42ea94d7d8a8cbf2c7e, type: 3}
+    amount: 1
+    dropWeight: 15
+  - rewardType: 2
+    icon: {fileID: 21300000, guid: c051572754bdf49a49d70267cce50b51, type: 3}
+    amount: 1
+    dropWeight: 15
