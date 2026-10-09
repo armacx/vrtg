@@ -9,42 +9,95 @@ namespace VertigoCase.Core
     {
         public static InventoryManager Instance { get; private set; }
 
-        public event Action<RewardType, int> OnRewardAdded;
-        public event Action OnInventoryCleared;
+        [SerializeField] private int startingGold = 100;
 
-        private readonly Dictionary<RewardType, int> _currentRunRewards = new Dictionary<RewardType, int>();
+        public event Action<string, int, Sprite> OnRewardAdded;
+        public event Action OnInventoryCleared;
+        public event Action<int> OnTotalGoldChanged;
+
+        private readonly Dictionary<string, int> _rewardAmounts = new Dictionary<string, int>();
+        private readonly Dictionary<string, Sprite> _rewardSprites = new Dictionary<string, Sprite>();
+        private int _totalGold;
+
+        public int TotalGold => _totalGold;
 
         private void Awake()
         {
-            if (Instance == null) Instance = this;
-            else Destroy(gameObject);
+            if (Instance == null)
+            {
+                Instance = this;
+                _totalGold = startingGold;
+            }
+            else
+            {
+                Destroy(gameObject);
+            }
         }
 
-        public void AddReward(RewardType type, int amount)
+        private void Start()
+        {
+            OnTotalGoldChanged?.Invoke(_totalGold);
+        }
+
+        public void AddReward(RewardType type, int amount, Sprite icon)
         {
             if (type == RewardType.Bomb || amount <= 0) return;
 
-            if (_currentRunRewards.ContainsKey(type))
-                _currentRunRewards[type] += amount;
+            string key = icon != null ? icon.name : type.ToString();
+
+            if (_rewardAmounts.ContainsKey(key))
+                _rewardAmounts[key] += amount;
             else
-                _currentRunRewards[type] = amount;
+            {
+                _rewardAmounts[key] = amount;
+                _rewardSprites[key] = icon;
+            }
 
-            OnRewardAdded?.Invoke(type, _currentRunRewards[type]);
+            OnRewardAdded?.Invoke(key, _rewardAmounts[key], icon);
         }
 
-        public int GetRewardAmount(RewardType type)
+        public bool HasEnoughGold(int amount)
         {
-            return _currentRunRewards.TryGetValue(type, out int amount) ? amount : 0;
+            return _totalGold >= amount;
         }
 
-        public Dictionary<RewardType, int> GetAllRewards()
+        public bool SpendGold(int amount)
         {
-            return new Dictionary<RewardType, int>(_currentRunRewards);
+            if (!HasEnoughGold(amount)) return false;
+
+            _totalGold -= amount;
+            OnTotalGoldChanged?.Invoke(_totalGold);
+            return true;
+        }
+
+        public void CollectAndClaimRewards()
+        {
+            foreach (var kvp in _rewardAmounts)
+            {
+                if (kvp.Key.ToLower().Contains("gold"))
+                {
+                    _totalGold += kvp.Value;
+                }
+            }
+
+            OnTotalGoldChanged?.Invoke(_totalGold);
+            ClearCurrentRun();
+        }
+
+        public Dictionary<string, int> GetAllRewards()
+        {
+            return new Dictionary<string, int>(_rewardAmounts);
+        }
+
+        public Dictionary<string, Sprite> GetAllSprites()
+        {
+            return new Dictionary<string, Sprite>(_rewardSprites);
         }
 
         public void ClearCurrentRun()
         {
-            _currentRunRewards.Clear();
+            _rewardAmounts.Clear();
+            _rewardSprites.Clear();
             OnInventoryCleared?.Invoke();
         }
     }

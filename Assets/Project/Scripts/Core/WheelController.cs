@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -20,12 +22,15 @@ namespace VertigoCase.Core
         private ZoneConfig _currentZoneConfig;
         private bool _isSpinning;
 
+        public bool IsSpinning => _isSpinning;
+        public event Action<bool> OnSpinStateChanged;
+
 #if UNITY_EDITOR
         private void OnValidate()
         {
             if (spinButton == null)
             {
-                var buttons = GetComponentsInChildren(typeof(Button), true);
+                var buttons = GetComponentsInChildren<Button>(true);
                 foreach (Button btn in buttons)
                 {
                     if (btn.name.ToLower().Contains("spin"))
@@ -38,17 +43,17 @@ namespace VertigoCase.Core
 
             if (wheelView == null)
             {
-                wheelView = GetComponentInChildren(typeof(WheelView), true) as WheelView;
+                wheelView = GetComponentInChildren<WheelView>(true);
             }
 
             if (bombPopupView == null)
             {
-                bombPopupView = GetComponentInChildren(typeof(BombPopupView), true) as BombPopupView;
+                bombPopupView = GetComponentInChildren<BombPopupView>(true);
             }
 
             if (text_zone_value == null || text_tier_value == null)
             {
-                var texts = GetComponentsInChildren(typeof(TextMeshProUGUI), true);
+                var texts = GetComponentsInChildren<TextMeshProUGUI>(true);
                 foreach (TextMeshProUGUI txt in texts)
                 {
                     string lowerName = txt.name.ToLower();
@@ -80,8 +85,7 @@ namespace VertigoCase.Core
             }
 
             UpdateZoneUI(zoneNumber, tier);
-
-            Debug.Log($"Zone Updated: Zone {zoneNumber} ({tier})");
+            SetSpinningState(false);
         }
 
         private void UpdateZoneUI(int zoneNumber, WheelTier tier)
@@ -117,13 +121,12 @@ namespace VertigoCase.Core
 
         private void OnSpinClicked()
         {
-            if (_isSpinning || _currentZoneConfig == null || _currentZoneConfig.slices.Count == 0)
+            if (_isSpinning || _currentZoneConfig == null || _currentZoneConfig.slices == null || _currentZoneConfig.slices.Count == 0)
                 return;
 
-            _isSpinning = true;
-            if (spinButton != null) spinButton.interactable = false;
+            SetSpinningState(true);
 
-            int targetIndex = Random.Range(0, _currentZoneConfig.slices.Count);
+            int targetIndex = GetWeightedRandomSliceIndex(_currentZoneConfig.slices);
 
             wheelView.SpinToSlice(targetIndex, _currentZoneConfig.slices.Count, () =>
             {
@@ -131,16 +134,51 @@ namespace VertigoCase.Core
             });
         }
 
+        private int GetWeightedRandomSliceIndex(List<WheelSliceData> slices)
+        {
+            float totalWeight = 0f;
+            for (int i = 0; i < slices.Count; i++)
+            {
+                totalWeight += Mathf.Max(0f, slices[i].dropWeight);
+            }
+
+            if (totalWeight <= 0f)
+            {
+                return UnityEngine.Random.Range(0, slices.Count);
+            }
+
+            float randomRoll = UnityEngine.Random.Range(0f, totalWeight);
+            float currentSum = 0f;
+
+            for (int i = 0; i < slices.Count; i++)
+            {
+                currentSum += Mathf.Max(0f, slices[i].dropWeight);
+                if (randomRoll <= currentSum)
+                {
+                    return i;
+                }
+            }
+
+            return slices.Count - 1;
+        }
+
+        private void SetSpinningState(bool spinning)
+        {
+            _isSpinning = spinning;
+            if (spinButton != null) 
+                spinButton.interactable = !spinning;
+
+            OnSpinStateChanged?.Invoke(_isSpinning);
+        }
+
         private void OnSpinFinished(int landedIndex)
         {
-            _isSpinning = false;
-            if (spinButton != null) spinButton.interactable = true;
+            SetSpinningState(false);
 
             WheelSliceData landedSlice = _currentZoneConfig.slices[landedIndex];
 
             if (landedSlice.rewardType == RewardType.Bomb)
             {
-                Debug.LogWarning("BOMB EXPLODED!");
                 if (bombPopupView != null)
                 {
                     bombPopupView.Show();
@@ -153,8 +191,7 @@ namespace VertigoCase.Core
             }
             else
             {
-                Debug.Log($"Won: {landedSlice.amount}x {landedSlice.rewardType}");
-                InventoryManager.Instance?.AddReward(landedSlice.rewardType, landedSlice.amount);
+                InventoryManager.Instance?.AddReward(landedSlice.rewardType, landedSlice.amount, landedSlice.icon);
                 ZoneManager.Instance?.AdvanceNextZone();
             }
         }

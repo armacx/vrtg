@@ -21,6 +21,9 @@ namespace VertigoCase.Core
         [SerializeField] private ZoneConfig silverSafeZoneTemplate;
         [SerializeField] private ZoneConfig goldSuperZoneTemplate;
 
+        [Header("Progression Multiplier")]
+        [SerializeField] private float rewardMultiplierPerZone = 0.15f;
+
         public int CurrentZone { get; private set; } = 1;
 
         public event Action<int, WheelTier, ZoneConfig> OnZoneChanged;
@@ -55,9 +58,42 @@ namespace VertigoCase.Core
 
         public ZoneConfig GetCurrentZoneConfig()
         {
-            if (IsSuperZone(CurrentZone)) return goldSuperZoneTemplate;
-            if (IsSafeZone(CurrentZone)) return silverSafeZoneTemplate;
-            return bronzeZoneTemplate;
+            ZoneConfig baseTemplate;
+            if (IsSuperZone(CurrentZone)) baseTemplate = goldSuperZoneTemplate;
+            else if (IsSafeZone(CurrentZone)) baseTemplate = silverSafeZoneTemplate;
+            else baseTemplate = bronzeZoneTemplate;
+
+            if (baseTemplate == null) return null;
+
+            ZoneConfig runtimeConfig = ScriptableObject.Instantiate(baseTemplate);
+
+            runtimeConfig.zoneNumber = CurrentZone;
+            runtimeConfig.isSafeZone = IsSafeZone(CurrentZone);
+            runtimeConfig.isSuperZone = IsSuperZone(CurrentZone);
+
+            float multiplier = 1f + ((CurrentZone - 1) * rewardMultiplierPerZone);
+
+            if (runtimeConfig.slices != null)
+            {
+                List<WheelSliceData> scaledSlices = new List<WheelSliceData>();
+                for (int i = 0; i < runtimeConfig.slices.Count; i++)
+                {
+                    WheelSliceData slice = runtimeConfig.slices[i];
+                    WheelSliceData clonedSlice = new WheelSliceData
+                    {
+                        rewardType = slice.rewardType,
+                        icon = slice.icon,
+                        dropWeight = slice.dropWeight,
+                        amount = slice.rewardType == RewardType.Bomb 
+                            ? 0 
+                            : Mathf.Max(1, Mathf.RoundToInt(slice.amount * multiplier))
+                    };
+                    scaledSlices.Add(clonedSlice);
+                }
+                runtimeConfig.slices = scaledSlices;
+            }
+
+            return runtimeConfig;
         }
 
         private void BroadcastCurrentZone()
